@@ -74,25 +74,36 @@ normalize.bmop<-function(object,...){
 #' @param ... additional parameters
 #' @return a bmop object, the result of imposing some evidence
 #' @export
-put_evidence.bmop<-function(object,evidence,evd.pos=NULL,
-                            MIN=0,normalize=FALSE,...){
- if (length(object$order)==1){return(object)}
- idx<-slice.index(object$ctrpoints,MARGIN = 1)
- if (is.null(evd.pos)){ evd.pos<-2: (length(evidence)+1)}
+put_evidence.bmop <- function(object,evidence,evd.pos = NULL,
+                            MIN=0, normalize = FALSE, ...){
+  # Unidimensional mop -> nothing to substitute
+ if (length(object$order) == 1) {return(object)}
  
- evd.pos<-evd.pos[evd.pos>1]
- evd.pos<-evd.pos[evd.pos<=length(object$order)]
- free.pos<-(1:length(object$order))[-evd.pos]
+ idx <- slice.index(object$ctrpoints,MARGIN = 1)
+ if (is.null(evd.pos)) { 
+   evd.pos <- 2:(length(evidence) + 1)
+ }
  
- bmop<-new_bmop(knots = object$knots[-evd.pos],
-                order=object$order[-evd.pos],nk = T)
+ # Get rid of negative indexes
+ evd.pos <- evd.pos[evd.pos > 1]
  
- bmop$ctrpoints<-apply(object$ctrpoints,MARGIN = free.pos,FUN = function(ctr){
-   m<-new_bmop(knots=object$knots[evd.pos],order=object$order[evd.pos], nk=T,
+ # Remove invalid indexes
+ evd.pos <- evd.pos[evd.pos <= length(object$order)]
+ 
+ # Indexes to keep
+ free.pos <- (1:length(object$order))[-evd.pos]
+ 
+ # Define new mop
+ bmop <- new_bmop(knots = object$knots[-evd.pos],
+                order = object$order[-evd.pos],nk = T)
+ bmop$ctrpoints <- apply(object$ctrpoints,MARGIN = free.pos,FUN = function(ctr){
+   m <- new_bmop(knots = object$knots[evd.pos], order = object$order[evd.pos], nk = T,
                ctrpoints = ctr)
    return(evaluate.bmop(x = evidence,object = m,MIN = MIN))
  })
- if (normalize) {bmop<-normalize.bmop(object = bmop)}
+ 
+ # Normalize if requested
+ if (normalize) {bmop <- normalize.bmop(object = bmop)}
  return(bmop)
 }
 

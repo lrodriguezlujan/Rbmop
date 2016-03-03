@@ -125,12 +125,13 @@ evaluate.bmop<-function(x,object,MIN=bmopPar()$MIN){
    l<-locate(x[1],object$knots[[1]])
    if (l==0){ return(MIN)}
    if (l>dim(object$ctrpoints)[1]){ l<-dim(object$ctrpoints)[1]}
-   for (i in (l-object$order[1] + 1):l){
-     m<-new_bmop(knots = object$knots[-1],order = object$order[-1],nk = T)
-     o<-object$ctrpoints[indx==i]
-     dim(o)=dim(m$ctrpoints)
-     m$ctrpoints<-o
-     ctr[i]<-evaluate.bmop(object=m,x=x[-1],MIN=MIN)  
+   
+   m <- new_bmop(knots = object$knots[-1], order = object$order[-1], nk = T)
+   for (i in (l - object$order[1] + 1):l) {
+     o <- object$ctrpoints[indx == i]
+     dim(o) <- dim(m$ctrpoints)
+     m$ctrpoints <- o
+     ctr[i] <- evaluate.bmop(object = m,x = x[-1], MIN = MIN)  
    }
    return(deboor_c(t=x[1],k = object$order[1],knots = object$knots[[1]],
                  ctr =ctr ,MIN = MIN))
