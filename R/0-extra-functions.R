@@ -6,8 +6,6 @@ removeNA<-function(data){
 }
 
 
-
-
 multiplicity<-function(x,v){
   return(length(v[x==c(x,v)])-1)
 }
@@ -37,11 +35,11 @@ as.bins<-function(data,breaks=nclass.FD, Min = NULL, Max = NULL, ...){
   bins<-list()
   data<-as.data.frame(data)
   if (dim(data)[2]==1){
-    if (is.null(Min)) Min <- min(data[,1]) - 1E-6
+    if (is.null(Min)) Min <- min(data[,1])
     if (is.null(Max)) Max <- max(data[,1]) + 1E-6
     data<-as.matrix(data)
     dim(data)<-NULL
-    H<-hist(data,breaks = pretty(x = c(Min,Max),n = breaks),plot = F)
+    H<-hist(data,breaks = pretty(x = as.numeric(c(Min,Max)),n = breaks),plot = F)
     bins$mids<-H$mids
     bins$counts<-H$counts
     class(bins)<-"bins"
@@ -54,10 +52,10 @@ as.bins<-function(data,breaks=nclass.FD, Min = NULL, Max = NULL, ...){
     Ns<-rep(breaks,times = dim(data)[2])[1:(dim(data)[2])]
   }
   # Compute ranges if not given
-  if (is.null(Min)) Min <- sapply(1:dim(data)[2], function(i) min(data[,i]) - 1E-6)
+  if (is.null(Min)) Min <- sapply(1:dim(data)[2], function(i) min(data[,i]))
   if (is.null(Max)) Max <- sapply(1:dim(data)[2], function(i) max(data[,i]) + 1E-6)
   Seqs <- lapply(1:(dim(data)[2]),function(i){
-    return(pretty(x = c(Min[i],Max[i]),n = Ns[i]))
+    return(pretty(x = as.numeric(c(Min[i],Max[i])),n = Ns[i]))
   })
   
   Mids<-lapply(Seqs,function(seq){
@@ -71,6 +69,7 @@ as.bins<-function(data,breaks=nclass.FD, Min = NULL, Max = NULL, ...){
   bins$mids <- expand.grid(Mids)
   bins$counts <- c(rep(0,dim(bins$mids)[1]))
   Es <- c()
+  # This is how we index the bins (like a matrix)
   Es[1] <- 1
   for (i in 2:(length(Ns))){
     Es[i] <- Es[i-1] * Ns[i-1]
@@ -78,7 +77,7 @@ as.bins<-function(data,breaks=nclass.FD, Min = NULL, Max = NULL, ...){
   for (i in 1:(dim(data)[1])){
     #Discard samples out of range
     if (all(vapply(1:(dim(data)[2]),
-                   function(j) data[i,j] > Min[j] && data[i,j] < Max[j]
+                   function(j) data[i,j] >= Min[j] && data[i,j] <= Max[j]
                    ,FUN.VALUE = logical(1)) ) ) {
       
       # Get position
@@ -86,17 +85,18 @@ as.bins<-function(data,breaks=nclass.FD, Min = NULL, Max = NULL, ...){
         locate(data[i,j],Seqs[[j]])
       })
       pos <- pos - 1
-      pos[1] <- pos[1] + 1
+      #pos[1] <- pos[1] + 1
       #Compute index
-      idx <- sum( (pos)*Es )
+      idx <- sum( (pos)*Es ) + 1
       # Add count
-      bins$counts[idx] <- bins$counts[idx] + 1
+      if (is.na(bins$counts[idx])){warning("NA index")}
+      else bins$counts[idx] <- bins$counts[idx] + 1
     }
   }
-  idx<-bins$counts!=0
-  bins$counts<-bins$counts[idx]
-  bins$mids<-bins$mids[idx,]
-  class(bins)<-"bins"
+  idx <- bins$counts!=0
+  bins$counts <- bins$counts[idx]
+  bins$mids <- bins$mids[idx,]
+  class(bins) <- "bins"
   return(bins)
   
 }

@@ -248,13 +248,15 @@ bmop_fit.data.frame<-function(data, conditional=F,
             informations.")
     }
     if (conditional){
-      breaks<-max(1,floor(nclass.FD(data[,1])^{1/(dim(data)[2])}) )
+      if ( all(floor(data[,1]) == data[,1]) ) breaks <- length(unique(data[,1]))
+      else breaks <- max(1,floor(nclass.FD(data[,1])^{1/(dim(data)[2])}) )
     }
     else{
-      breaks<-max(1, floor(max(sapply(data,nclass.FD))^{1/(dim(data)[2])} ))
+      if ( all(floor(data[,1]) == data[,1]) ) breaks <- length(unique(data[,1]))
+      else breaks<-max(1, floor(max(sapply(data,nclass.FD))^{1/(dim(data)[2])} ))
     }
     return(bmop_fit.bins(data = as.bins(data = data,breaks = breaks, Min = Min, Max = Max),
-                                        conditional = conditional, ...))
+                                        conditional = conditional, Min = Min, Max = Max, ...))
   }
   m<-define_bmop(bmop = bmop,data = data,Max = Max,Min = Min,...)
   m<-normalize.bmop(m)
