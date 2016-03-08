@@ -33,13 +33,15 @@ fix_data<-function(data){
 #' @param ... additional parameters
 #' @return an object \code{bins}, the data are grouped into bins uniformly
 #' @export
-as.bins<-function(data,breaks=nclass.FD,...){
+as.bins<-function(data,breaks=nclass.FD, Min = NULL, Max = NULL, ...){
   bins<-list()
   data<-as.data.frame(data)
   if (dim(data)[2]==1){
+    if (is.null(Min)) Min <- min(data[,1]) - 1E-6
+    if (is.null(Max)) Max <- max(data[,1]) + 1E-6
     data<-as.matrix(data)
     dim(data)<-NULL
-    H<-hist(data,breaks=breaks,plot = F)
+    H<-hist(data,breaks = pretty(x = c(Min,Max),n = breaks),plot = F)
     bins$mids<-H$mids
     bins$counts<-H$counts
     class(bins)<-"bins"
@@ -51,8 +53,11 @@ as.bins<-function(data,breaks=nclass.FD,...){
   else{
     Ns<-rep(breaks,times = dim(data)[2])[1:(dim(data)[2])]
   }
-  Seqs<-lapply(1:(dim(data)[2]),function(i){
-    return(pretty(x = data[,i],n = Ns[i]))
+  # Compute ranges if not given
+  if (is.null(Min)) Min <- sapply(1:dim(data)[2], function(i) min(data[,i]) - 1E-6)
+  if (is.null(Max)) Max <- sapply(1:dim(data)[2], function(i) max(data[,i]) + 1E-6)
+  Seqs <- lapply(1:(dim(data)[2]),function(i){
+    return(pretty(x = c(Min[i],Max[i]),n = Ns[i]))
   })
   
   Mids<-lapply(Seqs,function(seq){
@@ -62,22 +67,31 @@ as.bins<-function(data,breaks=nclass.FD,...){
     }
     return(mids)
   })
-  Ns<-sapply(Mids,length)
-  bins$mids<-expand.grid(Mids)
-  bins$counts<-c(rep(0,dim(bins$mids)[1]))
-  Es<-c()
-  Es[1]<-1
+  Ns <- sapply(Mids,length)
+  bins$mids <- expand.grid(Mids)
+  bins$counts <- c(rep(0,dim(bins$mids)[1]))
+  Es <- c()
+  Es[1] <- 1
   for (i in 2:(length(Ns))){
-    Es[i]<-Es[i-1]*Ns[i-1]
+    Es[i] <- Es[i-1] * Ns[i-1]
   }
   for (i in 1:(dim(data)[1])){
-    pos<-sapply(1:(dim(data)[2]),FUN = function(j){
-      locate(data[i,j],Seqs[[j]])
-    })
-    pos<-pos-1
-    pos[1]<-pos[1]+1
-    idx<-sum( (pos)*Es )
-    bins$counts[idx] <- bins$counts[idx] + 1
+    #Discard samples out of range
+    if (all(vapply(1:(dim(data)[2]),
+                   function(j) data[i,j] > Min[j] && data[i,j] < Max[j]
+                   ,FUN.VALUE = logical(1)) ) ) {
+      
+      # Get position
+      pos <- sapply(1:(dim(data)[2]), FUN = function(j){
+        locate(data[i,j],Seqs[[j]])
+      })
+      pos <- pos - 1
+      pos[1] <- pos[1] + 1
+      #Compute index
+      idx <- sum( (pos)*Es )
+      # Add count
+      bins$counts[idx] <- bins$counts[idx] + 1
+    }
   }
   idx<-bins$counts!=0
   bins$counts<-bins$counts[idx]

@@ -6,8 +6,11 @@ Date: 2015-05-11
 Author: Gherardo Varando
 Maintainer: Gherardo Varando <gherardo.varando@gmail.com>
 Description: Handling, estimation and comparison functions for
-             B-spline MoPs densities and conditional densities (bmop).
+    B-spline MoPs densities and conditional densities (bmop).
 License: GPL-3 | file LICENSE
-Imports: stats
-Suggests: rgl,
+Imports:
+    stats
+Suggests:
+    rgl,
     cubature
+RoxygenNote: 5.0.1
