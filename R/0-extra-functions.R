@@ -7,13 +7,12 @@ removeNA<-function(data){
 
 
 multiplicity<-function(x,v){
-  return(length(v[x==c(x,v)])-1)
+  return(length(v[x==c(x,v)]) - 1)
 }
 
 
-locate<-function(a,v){
-  v<-sort(c(a,v))
-  return(max((1:(length(v)))[v==a]-1))
+locate <- function(a,v){
+  return( min(c(which(v > a),length(v)) - 1 ) ) 
 }
 
 
