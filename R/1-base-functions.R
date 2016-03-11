@@ -1,10 +1,3 @@
-
-
-
-
-
-
-
 #' New bmop object
 #'
 #' Constructor of bmop object.

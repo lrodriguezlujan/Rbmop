@@ -1,19 +1,20 @@
-.parnames<-c("mle","N","order","alpha","knotsMethod","k","toll","repMax","MIN"
+.parnames <- c("mle","N","order","alpha", "beta","knotsMethod","k","toll","repMax","MIN"
              ,"autoReduce","warnings")
-.bmopenv<-new.env()
+.bmopenv <- new.env()
 lockBinding(".bmopenv",environment())
 lockBinding(".parnames",environment())
 assign(x = ".bmopPars",value = list(mle = FALSE, 
-                                    N=NA,
-                                    order=3,
-                                    alpha=3,
-                                    knotsMethod="uniform",
-                                    k=2,
-                                    toll=10^(-10),
-                                    repMax=100,
-                                    MIN=10^(-10),
-                                    autoReduce=200,
-                                    warnings=TRUE),
+                                    N = NA,
+                                    order = 3,
+                                    alpha = 3,
+                                    beta  = 1,
+                                    knotsMethod = "uniform",
+                                    k = 2,
+                                    toll = 10^(-10),
+                                    repMax = 100,
+                                    MIN = 10^(-10),
+                                    autoReduce = 200,
+                                    warnings = TRUE),
        envir = .bmopenv)
 lockEnvironment(env = .bmopenv,bindings = ".bmopPars")
 
@@ -50,6 +51,9 @@ lockEnvironment(env = .bmopenv,bindings = ".bmopPars")
 #'                         set to \eqn{N^d} where \eqn{d} is the number of
 #'                          dimensions
 #'                         in the dataset (num. of variables).
+#'          \code{beta=1}: Dimensionality penalization exponent. The number of knots
+#'          is computed with the formula: \code{max(1,floor( dim(data)[1] ^ (1 / ((dim(data)[2] ^ beta) *alpha) )))}.
+#'          
 #'                         
 #'          \code{knotsMethod="uniform"}:
 #'           \code{"uniform"} or \code{"quantiles"} knots, 
@@ -112,17 +116,20 @@ bmopPar <- function(...){
 }
 
 
-define_bmop<-function(bmop=NULL,data=NULL,Max=NULL,Min=NULL,
-                      N=get(".bmopPars",
+define_bmop <- function(bmop=NULL, data = NULL, Max = NULL, Min = NULL,
+                      N = get(".bmopPars",
                             envir = .bmopenv)$N,
-                      order=get(".bmopPars",
+                      order = get(".bmopPars",
                                 envir = .bmopenv)$order,
-                      alpha=get(".bmopPars",
+                      alpha = get(".bmopPars",
                                 envir = .bmopenv)$alpha,
-                      method=get(".bmopPars",
+                      beta = get(".bmopPars",
+                                  envir = .bmopenv)$beta,
+                      method = get(".bmopPars",
                                  envir = .bmopenv)$knotsMethod,...){
   
   if (is.null(alpha)){alpha<-3}
+  if (is.null(beta)){beta<-1}
   
   if (is.null(order[1])){order <- 3}
   if (is.null(method)){method <- "uniform"}
@@ -140,7 +147,7 @@ define_bmop<-function(bmop=NULL,data=NULL,Max=NULL,Min=NULL,
     counts <- data$counts
     data <- data$mids
     data <- as.data.frame(data)
-    alpha <- 1/log(sum(counts) ^ ( 1/alpha ),base = dim(data)[1])
+    alpha <- 1/log(sum(counts) ^ ( 1/alpha ),base = dim(data)[1] )
   }
   else if (inherits(data,"values")){
     data <- data$mids
@@ -150,13 +157,15 @@ define_bmop<-function(bmop=NULL,data=NULL,Max=NULL,Min=NULL,
   data<-as.data.frame(data)
   }
   if (is.na(N[1])){
-    N<-max(1,floor(dim(data)[1] ^ (1 / (dim(data)[2]*alpha))))
-    if (length(order)!=dim(data)[2]){ 
+    # Set number of nodes
+    N <- max(1,floor( dim(data)[1] ^ (1 / ((dim(data)[2] ^ beta) *alpha) )))
+    # Same order for each var if no oder is given
+    if (length(order) != dim(data)[2]) { 
       order<-rep(order,dim(data)[2])[1:(dim(data)[2])]}
   }
   return(
   new_bmop(ctrpoints = 1,knots = 
-            generate_knots(data = data,N =N,Max = Max,Min=Min,method = method )
+            generate_knots(data = data,N = N,Max = Max,Min = Min,method = method )
             ,order = order))
   }
 
@@ -249,11 +258,11 @@ bmop_fit.data.frame<-function(data, conditional=F,
     }
     if (conditional){
       if ( all(floor(data[,1]) == data[,1]) ) breaks <- length(unique(data[,1]))
-      else breaks <- max(1,floor(nclass.FD(data[,1])^{1/(dim(data)[2])}) )
+      else breaks <- max(1,floor(nclass.FD(data[,1])^{1/(dim(data)[2] ^ bmopPar()$beta)}) )
     }
     else{
       if ( all(floor(data[,1]) == data[,1]) ) breaks <- length(unique(data[,1]))
-      else breaks<-max(1, floor(max(sapply(data,nclass.FD))^{1/(dim(data)[2])} ))
+      else breaks <- max(1, floor(max(sapply(data,nclass.FD)) ^ {1/(dim(data)[2] ^ bmopPar()$beta)} ))
     }
     return(bmop_fit.bins(data = as.bins(data = data,breaks = breaks, Min = Min, Max = Max),
                                         conditional = conditional, Min = Min, Max = Max, ...))
